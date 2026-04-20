@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
+require_once(__DIR__ . '/settings.php');
 require_once(__DIR__ . '/crest.php');
 
 try {
@@ -26,22 +28,31 @@ try {
 
     foreach ($messages as $msg) {
         $chatId = $msg['im']['chat_id'] ?? '';
-        $messageText = $msg['im']['message']['text'] ?? '';
-
-        // The chat_id in the connector context is the Telegram chat ID we passed earlier
-        // We need to extract the original Telegram chat ID from the connector chat mapping
-        // In our setup, we used the telegram_chat_id as the external chat.id
-        $telegramChatId = $msg['chat']['id'] ?? '';
+        $messageText = $msg['message']['text'] ?? ''; // Corrected path
+        $telegramChatId = ($msg['chat']['id'] ?? '');
 
         if (empty($telegramChatId) || empty($messageText)) {
             CRest::setLog(['skip' => 'missing chat_id or text', 'msg' => $msg], 'b24_event_skip');
             continue;
         }
 
-        // Strip HTML tags from Bitrix24 message
-        $cleanText = strip_tags($messageText);
+        // Clean Bitrix24 formatting like [b]User:[/b] and [br]
+        $cleanText = preg_replace('/\[b\].*?\[\/b\]\s*\[br\]\s*/i', '', $messageText);
+        $cleanText = strip_tags($cleanText);
+        $cleanText = trim($cleanText);
 
-        // Send to Telegram
+        // Deduplication: Don't save if we already have this exact message as OUT recently
+        $stmt = $db->prepare("SELECT id FROM messages WHERE telegram_chat_id = ? AND text = ? AND direction = 'OUT' AND timestamp > ? LIMIT 1");
+        $stmt->execute([$telegramChatId, $cleanText, time() - 10]);
+        if ($stmt->fetch()) {
+            CRest::setLog(['skip' => 'duplicate message', 'text' => $cleanText], 'b24_event_skip');
+            continue;
+        }
+
+        // 1. Save to local DB (Direction: OUT)
+        $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text');
+
+        // 2. Send to Telegram
         $botToken = TELEGRAM_BOT_TOKEN;
         $telegramUrl = "https://api.telegram.org/bot{$botToken}/sendMessage";
 

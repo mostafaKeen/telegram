@@ -15,12 +15,18 @@ use Monolog\Handler\StreamHandler;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 $dotenv = new Dotenv();
-$dotenv->load(__DIR__ . '/../../.env');
+// Use bootEnv to ensure $_ENV and $_SERVER are correctly populated
+$dotenv->bootEnv(__DIR__ . '/../../.env');
 
 // Init Storage
 $storage = new SqliteStorage(__DIR__ . '/../../var/database.sqlite');
 
 // Init Logger
+// Ensure logs directory exists
+if (!is_dir(__DIR__ . '/../../var/logs')) {
+    mkdir(__DIR__ . '/../../var/logs', 0777, true);
+}
+
 $logger = new Logger('telegram_bridge');
 $logger->pushHandler(new StreamHandler(__DIR__ . '/../../var/logs/app.log', Logger::DEBUG));
 
