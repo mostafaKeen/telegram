@@ -10,19 +10,12 @@ $lastId = (int)($_GET['last_id'] ?? 0);
 $chatId = $_GET['chat_id'] ?? '';
 
 try {
-    $db = new PDO('sqlite:' . __DIR__ . '/../var/database.sqlite');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
     if ($chatId) {
-        $stmt = $db->prepare("SELECT * FROM messages WHERE id > ? AND telegram_chat_id = ? ORDER BY id ASC LIMIT 50");
-        $stmt->execute([$lastId, $chatId]);
+        $messages = $storage->getMessagesSince($chatId, $lastId);
     } else {
-        $stmt = $db->prepare("SELECT * FROM messages WHERE id > ? ORDER BY id ASC LIMIT 50");
-        $stmt->execute([$lastId]);
+        $messages = $storage->getGlobalMessagesSince($lastId);
     }
 
-    $messages = $stmt->fetchAll();
     echo json_encode(['success' => true, 'messages' => $messages]);
 
 } catch (Throwable $e) {

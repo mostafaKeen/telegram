@@ -138,6 +138,20 @@ class SqliteStorage
         return $stmt->fetchAll();
     }
 
+    public function getMessagesSince(string $telegramChatId, int $lastId, int $limit = 50): array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE telegram_chat_id = ? AND id > ? ORDER BY id ASC LIMIT ?");
+        $stmt->execute([$telegramChatId, $lastId, $limit]);
+        return $stmt->fetchAll();
+    }
+
+    public function getGlobalMessagesSince(int $lastId, int $limit = 50): array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE id > ? ORDER BY id ASC LIMIT ?");
+        $stmt->execute([$lastId, $limit]);
+        return $stmt->fetchAll();
+    }
+
     public function saveMapping(string $telegramChatId, string $b24ConnectorChatId, string $b24SessionId): void
     {
         $stmt = $this->db->prepare("INSERT OR REPLACE INTO chat_mappings (telegram_chat_id, b24_connector_chat_id, b24_session_id, last_message_date) VALUES (?, ?, ?, ?)");
