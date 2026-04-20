@@ -1,0 +1,10 @@
+{
+    "access_token": "7ef7e5690083b6ff006f2f9300000327f0f10749bcd47a0ddf2941e41d3ca0c1c9d499",
+    "expires_in": "3600",
+    "application_token": "223fdea56eb35a7e00bd06b7ad98edb0",
+    "refresh_token": "6e760d6a0083b6ff006f2f9300000327f0f107dbb58ee2af1ee114f95d470815fa6a60",
+    "domain": "keenenter.bitrix24.com",
+    "client_endpoint": "https:\/\/keenenter.bitrix24.com\/rest\/",
+    "open_line_id": "1",
+    "telegram_webhook_url": "https:\/\/pregastrular-duteous-giovanny.ngrok-free.dev\/public\/webhook_telegram.php"
+}

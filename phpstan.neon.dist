@@ -1,0 +1,51 @@
+parameters:
+  level: 5
+  paths:
+    - src/
+    - tests/Unit/
+    - tests/Integration/Services/Telephony
+    - tests/Integration/Services/User
+    - tests/Integration/Services/UserConsent
+    - tests/Integration/Services/IM
+    - tests/Integration/Services/Catalog
+    - tests/Integration/Services/IMOpenLines
+    - tests/Integration/Services/SonetGroup
+    - tests/Integration/Services/Main
+    - tests/Integration/Services/Paysystem
+    - tests/Integration/Services/Placement
+    - tests/Integration/Services/CRM/Address
+    - tests/Integration/Services/CRM/Deal/Service/DealRecurringTest.php
+    - tests/Integration/Services/CRM/Lead/Service/LeadContactTest.php
+    - tests/Integration/Services/CRM/Item
+    - tests/Integration/Services/CRM/Deal/Service/DealDetailsConfigurationTest.php
+    - tests/Integration/Services/CRM/Lead/Service/LeadDetailsConfigurationTest.php
+    - tests/Integration/Services/CRM/Contact/Service/ContactDetailsConfigurationTest.php
+    - tests/Integration/Services/CRM/Lead/Service/LeadProductRowsTest.php
+    - tests/Integration/Services/CRM/Quote/Service/QuoteTest.php
+    - tests/Integration/Services/CRM/Quote/Service/BatchTest.php
+    - tests/Integration/Services/CRM/Quote/Service/QuoteContactTest.php
+    - tests/Integration/Services/CRM/Quote/Service/QuoteUserfieldTest.php
+    - tests/Integration/Services/CRM/Quote/Service/QuoteProductRowsTest.php
+    - tests/Integration/Services/CRM/Lead/Service/LeadUserfieldTest.php
+    - tests/Integration/Services/CRM/Currency
+    - tests/Integration/Services/CRM/Requisites
+    - tests/Integration/Services/Task
+    - tests/Integration/Services/Sale
+    - tests/Integration/Services/Disk
+    - tests/Integration/Services/Calendar
+    - tests/Integration/Services/CRM/Documentgenerator/Numerator
+  excludePaths:
+    - tests/Integration/Services/CRM/Requisites/Service/RequisiteUserfieldUseCaseTest.php
+    - tests/Integration/Services/CRM/Status
+    - tests/Integration/Services/CRM/Timeline
+    - tests/Integration/Services/Entity/Section
+  bootstrapFiles:
+    - tests/bootstrap.php
+  parallel:
+    jobSize: 20
+    maximumNumberOfProcesses: 8
+    minimumNumberOfJobsPerProcess: 2
+  tmpDir: var/temp
+  editorUrlTitle: '%%relFile%%:%%line%%'
+  editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
+  treatPhpDocTypesAsCertain: false

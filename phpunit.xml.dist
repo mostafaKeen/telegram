@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" backupGlobals="false" colors="true"
+         bootstrap="tests/bootstrap.php" failOnRisky="true" failOnWarning="true"
+         displayDetailsOnTestsThatTriggerWarnings="true">
+    <php>
+        <ini name="error_reporting" value="-1"/>
+    </php>
+    <testsuites>
+        <testsuite name="unit_tests">
+            <directory>./tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration_tests">
+            <directory>./tests/Integration</directory>
+        </testsuite>
+        <testsuite name="integration_tests_core">
+            <directory>./tests/Integration/Core/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_telephony">
+            <directory>./tests/Integration/Services/Telephony/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_im">
+            <directory>./tests/Integration/Services/IM/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_im_open_lines">
+            <directory>./tests/Integration/Services/IMOpenLines/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_im_open_lines_connector">
+            <directory>./tests/Integration/Services/IMOpenLines/Connector/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_im_open_lines_config">
+            <directory>./tests/Integration/Services/IMOpenLines/Config/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_im_open_lines_crm_chat">
+            <directory>./tests/Integration/Services/IMOpenLines/CRMChat/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_im_open_lines_session">
+            <directory>./tests/Integration/Services/IMOpenLines/Session/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_im_open_lines_operator">
+            <directory>./tests/Integration/Services/IMOpenLines/Operator/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_placement">
+            <directory>./tests/Integration/Services/Placement/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_paysystem">
+            <directory>./tests/Integration/Services/Paysystem/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_paysystem_service">
+            <directory>./tests/Integration/Services/Paysystem/Service/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_paysystem_settings">
+            <directory>./tests/Integration/Services/Paysystem/Settings/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_user">
+            <directory>./tests/Integration/Services/User/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_user_consent">
+            <directory>./tests/Integration/Services/UserConsent/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_workflows">
+            <directory>./tests/Integration/Services/Workflows/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_entity">
+            <directory>./tests/Integration/Services/Entity/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_ai_admin">
+            <directory>./tests/Integration/Services/AI/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_log">
+            <directory>./tests/Integration/Services/Log/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_sale">
+            <directory>./tests/Integration/Services/Sale/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_calendar">
+            <directory>./tests/Integration/Services/Calendar/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_calendar_event">
+            <directory>./tests/Integration/Services/Calendar/Event/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_calendar_resource">
+            <directory>./tests/Integration/Services/Calendar/Resource/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_status">
+            <directory>./tests/Integration/Services/Sale/Status/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_status_lang">
+            <directory>./tests/Integration/Services/Sale/StatusLang/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_basket">
+            <directory>./tests/Integration/Services/Sale/BasketItem/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_basket_property">
+            <directory>./tests/Integration/Services/Sale/BasketProperty/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_crm">
+            <directory>./tests/Integration/Services/CRM/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_crm_address">
+            <directory>./tests/Integration/Services/CRM/Address/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_crm_deal_details">
+            <file>./tests/Integration/Services/CRM/Deal/Service/DealDetailsConfigurationTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_scope_crm_contact_details">
+            <file>./tests/Integration/Services/CRM/Contact/Service/ContactDetailsConfigurationTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_lead_productrows">
+            <file>./tests/Integration/Services/CRM/Lead/Service/LeadProductRowsTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_lead_userfield">
+            <file>./tests/Integration/Services/CRM/Lead/Service/LeadUserfieldTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_lead_userfield_use_case">
+            <file>./tests/Integration/Services/CRM/Lead/Service/LeadUserfieldUseCaseTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_scope_crm_currency">
+            <directory>./tests/Integration/Services/CRM/Currency/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_deal_recurring">
+            <file>./tests/Integration/Services/CRM/Deal/Service/DealRecurringTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_lead_contacts">
+            <file>./tests/Integration/Services/CRM/Lead/Service/LeadContactTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_crm_item">
+            <directory>./tests/Integration/Services/CRM/Item/Productrow/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_automation">
+            <directory>./tests/Integration/Services/CRM/Automation/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_lead_details">
+            <file>./tests/Integration/Services/CRM/Lead/Service/LeadDetailsConfigurationTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_crm_quote">
+            <directory>./tests/Integration/Services/CRM/Quote/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_crm_requisite">
+            <file>./tests/Integration/Services/CRM/Requisites/Service/RequisiteLinkTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_crm_preset_field">
+            <file>./tests/Integration/Services/CRM/Requisites/Service/RequisitePresetFieldTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_crm_requisite_userfield">
+            <file>./tests/Integration/Services/CRM/Requisites/Service/RequisiteUserfieldTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_crm_status">
+            <directory>./tests/Integration/Services/CRM/Status/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_crm_timeline">
+            <directory>./tests/Integration/Services/CRM/Timeline/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_department">
+            <directory>./tests/Integration/Services/Department/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_sale">
+            <directory>./tests/Integration/Services/Sale/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_disk">
+            <directory>./tests/Integration/Services/Disk/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_disk_service">
+            <directory>./tests/Integration/Services/Disk/Service/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_disk_file">
+            <directory>./tests/Integration/Services/Disk/File/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_disk_storage">
+            <directory>./tests/Integration/Services/Disk/Storage/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_task">
+            <directory>./tests/Integration/Services/Task/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale">
+            <directory>./tests/Integration/Services/Sale/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_payment">
+            <directory>./tests/Integration/Services/Sale/Payment/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_payment_item_basket">
+            <directory>./tests/Integration/Services/Sale/PaymentItemBasket/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_payment_item_shipment">
+            <directory>./tests/Integration/Services/Sale/PaymentItemShipment/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_property_relation">
+            <directory>./tests/Integration/Services/Sale/PropertyRelation/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_order">
+            <directory>./tests/Integration/Services/Sale/Order/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_cashbox_handler">
+            <directory>./tests/Integration/Services/Sale/CashboxHandler/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_cashbox">
+            <directory>./tests/Integration/Services/Sale/Cashbox/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_delivery_handler">
+            <directory>./tests/Integration/Services/Sale/DeliveryHandler/Service/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_delivery">
+            <directory>./tests/Integration/Services/Sale/Delivery/Service/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_delivery_extra_service">
+            <directory>./tests/Integration/Services/Sale/DeliveryExtraService/Service/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_core-list">
+            <file>./tests/Integration/Core/BatchTraversableListTest.php</file>
+        </testsuite>
+        <testsuite name="integration_tests_sale_shipment">
+            <directory>./tests/Integration/Services/Sale/Shipment/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_shipment_property">
+            <directory>./tests/Integration/Services/Sale/ShipmentProperty/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_shipment_property_value">
+            <directory>./tests/Integration/Services/Sale/ShipmentPropertyValue/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_sale_shipment_item">
+            <directory>./tests/Integration/Services/Sale/ShipmentItem/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_crm_documentgenerator_numerator">
+            <directory>./tests/Integration/Services/CRM/Documentgenerator/Numerator/</directory>
+        </testsuite>
+        <testsuite name="integration_tests_scope_sonet_group">
+            <directory>./tests/Integration/Services/SonetGroup/</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>./src</directory>
+        </include>
+    </source>
+</phpunit>
