@@ -9,7 +9,7 @@ foreach ($extensions as $ext) {
 }
 
 echo "\nChecking File Permissions...\n";
-$dirs = ['var', 'var/logs', 'public/uploads', 'public/logs', 'vendor'];
+$dirs = ['var', 'var/logs', 'var/storage', 'var/storage/leads', 'public/uploads', 'public/logs', 'vendor'];
 foreach ($dirs as $dir) {
     $fullPath = __DIR__ . '/../' . $dir;
     if (is_dir($fullPath)) {
@@ -31,12 +31,15 @@ if (file_exists(__DIR__ . '/.env')) {
     echo "[ENV] .env NOT FOUND.\n";
 }
 
-echo "\nTesting Database Connection...\n";
+echo "\nTesting JSON Storage...\n";
 try {
-    $dbPath = __DIR__ . '/../var/database.sqlite';
-    if (!is_dir(__DIR__ . '/../var')) @mkdir(__DIR__ . '/../var', 0775, true);
-    $db = new PDO('sqlite:' . $dbPath);
-    echo "[DB] SQLite Connection: OK\n";
+    $storageFile = __DIR__ . '/../var/storage/sequence.json';
+    if (is_dir(__DIR__ . '/../var/storage')) {
+        echo "[STORAGE] Directory: OK\n";
+        echo "[STORAGE] Writable: " . (is_writable(__DIR__ . '/../var/storage') ? "YES" : "NO") . "\n";
+    } else {
+        echo "[STORAGE] Error: Directory missing\n";
+    }
 } catch (Exception $e) {
-    echo "[DB] Error: " . $e->getMessage() . "\n";
+    echo "[STORAGE] Error: " . $e->getMessage() . "\n";
 }

@@ -24,7 +24,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Symfony\Component\Dotenv\Dotenv;
-use Bitrix24\TelegramBridge\Storage\SqliteStorage;
+use Bitrix24\TelegramBridge\Storage\JsonStorage;
 use Bitrix24\SDK\Core\Credentials\ApplicationProfile;
 use Bitrix24\SDK\Core\Credentials\Scope;
 use Bitrix24\SDK\Core\Credentials\AuthToken;
@@ -38,7 +38,7 @@ $dotenv = new Dotenv();
 $dotenv->bootEnv(__DIR__ . '/../../.env');
 
 // Init Storage
-$storage = new SqliteStorage(__DIR__ . '/../../var/database.sqlite');
+$storage = new JsonStorage(__DIR__ . '/../../var');
 
 // Init Logger
 // Ensure logs directory exists
