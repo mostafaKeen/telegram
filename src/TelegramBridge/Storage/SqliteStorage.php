@@ -133,9 +133,10 @@ class SqliteStorage
 
     public function getMessages(string $telegramChatId, int $limit = 50): array
     {
-        $stmt = $this->db->prepare("SELECT * FROM messages WHERE telegram_chat_id = ? ORDER BY timestamp ASC LIMIT ?");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE telegram_chat_id = ? ORDER BY id DESC LIMIT ?");
         $stmt->execute([$telegramChatId, $limit]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        return array_reverse($rows);
     }
 
     public function getMessagesSince(string $telegramChatId, int $lastId, int $limit = 50): array
