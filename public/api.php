@@ -78,8 +78,11 @@ try {
 
             // 3. Sync to Bitrix24 (to keep Open Line updated)
             $settingsFile = __DIR__ . '/settings.json';
-            $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
-            $lineId = $settings['open_line_id'] ?? 1;
+            $settings = [];
+            if (file_exists($settingsFile)) {
+                $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+            }
+            $lineId = $settings['open_line_id'] ?? '1'; // Default to '1' but try to detect
 
             $b24Message = ['text' => $text];
             if ($mediaPath) {
@@ -89,15 +92,21 @@ try {
                 ]];
             }
 
-            CRest::call('imconnector.send.messages', [
+            $b24Result = CRest::call('imconnector.send.messages', [
                 'CONNECTOR' => 'telegram_bridge',
                 'LINE' => $lineId,
                 'MESSAGES' => [[
-                    'user' => ['id' => '0', 'name' => 'Agent'], // 0 means current user/system
+                    'user' => ['id' => '0', 'name' => 'Agent'],
                     'message' => $b24Message,
                     'chat' => ['id' => $chatId]
                 ]]
             ]);
+
+            CRest::setLog([
+                'chat_id' => $chatId,
+                'line_id' => $lineId,
+                'b24_response' => $b24Result
+            ], 'api_to_b24_sync');
 
             echo json_encode(['success' => true]);
             break;

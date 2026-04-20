@@ -41,11 +41,12 @@ try {
         $cleanText = strip_tags($cleanText);
         $cleanText = trim($cleanText);
 
-        // Deduplication: Don't save if we already have this exact message as OUT recently
+        // Deduplication: Only skip if it's an UNCANNY duplicate (same text, same chat, within 2 seconds)
+        // This prevents blocking agents who send multiple short replies.
         $stmt = $db->prepare("SELECT id FROM messages WHERE telegram_chat_id = ? AND text = ? AND direction = 'OUT' AND timestamp > ? LIMIT 1");
-        $stmt->execute([$telegramChatId, $cleanText, time() - 10]);
+        $stmt->execute([$telegramChatId, $cleanText, time() - 2]); 
         if ($stmt->fetch()) {
-            CRest::setLog(['skip' => 'duplicate message', 'text' => $cleanText], 'b24_event_skip');
+            CRest::setLog(['skip' => 'near-instant duplicate', 'text' => $cleanText], 'b24_event_skip');
             continue;
         }
 

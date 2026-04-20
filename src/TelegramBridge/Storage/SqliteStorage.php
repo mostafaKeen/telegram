@@ -12,12 +12,18 @@ class SqliteStorage
 
     public function __construct(string $dbPath)
     {
-        $this->db = new PDO('sqlite:' . $dbPath);
-        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        // Add busy timeout (5 seconds) to prevent locking hangups
-        $this->db->exec("PRAGMA busy_timeout = 5000");
-        $this->initSchema();
+        try {
+            $this->db = new PDO('sqlite:' . $dbPath);
+            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            // Add busy timeout (5 seconds) to prevent locking hangups
+            $this->db->exec("PRAGMA busy_timeout = 5000");
+            $this->initSchema();
+        } catch (\PDOException $e) {
+            die("FATAL ERROR: Unable to access the database file. 
+                 Please ensure the '/var' folder exists in your project root and has write permissions (chmod 775). 
+                 Folder checked: " . dirname($dbPath));
+        }
     }
 
     private function initSchema(): void

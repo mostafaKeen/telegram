@@ -23,12 +23,16 @@ $storage = new SqliteStorage(__DIR__ . '/../../var/database.sqlite');
 
 // Init Logger
 // Ensure logs directory exists
-if (!is_dir(__DIR__ . '/../../var/logs')) {
-    mkdir(__DIR__ . '/../../var/logs', 0777, true);
+$logDir = __DIR__ . '/../../var/logs';
+if (!is_dir($logDir)) {
+    if (!@mkdir($logDir, 0775, true)) {
+        die("FATAL ERROR: The directory /var/logs/ is missing and the server cannot create it. 
+             Please manually create a folder named 'var' in your project root, then a 'logs' folder inside it, and set permissions to 775.");
+    }
 }
 
 $logger = new Logger('telegram_bridge');
-$logger->pushHandler(new StreamHandler(__DIR__ . '/../../var/logs/app.log', Logger::DEBUG));
+$logger->pushHandler(new StreamHandler($logDir . '/app.log', Logger::DEBUG));
 
 // App Credentials
 $appProfile = new ApplicationProfile(
