@@ -1,4 +1,5 @@
 <?php
+require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 header('Content-Type: text/plain');
 
 $files = ['settings.json', 'settings.php.log'];

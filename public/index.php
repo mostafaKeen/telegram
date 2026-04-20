@@ -11,6 +11,8 @@ require_once(__DIR__ . '/crest.php');
 header('Content-Type: text/html; charset=utf-8');
 header("Content-Security-Policy: frame-ancestors 'self' *.bitrix24.com *.bitrix24.info");
 header('P3P: CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"');
+
+$v = time();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +24,7 @@ header('P3P: CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CN
     <script src="//api.bitrix24.com/api/v1/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=<?php echo $v; ?>">
 </head>
 <body>
     <div class="app-container">

@@ -67,7 +67,7 @@ class SqliteStorage
             timestamp INTEGER,
             FOREIGN KEY(telegram_chat_id) REFERENCES chats(telegram_chat_id)
         )");
-        
+
         $this->db->exec("CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(telegram_chat_id)");
     }
 
@@ -104,14 +104,14 @@ class SqliteStorage
             $stmt = $this->db->prepare("SELECT id FROM messages WHERE telegram_chat_id = ? AND text = ? AND direction = ? AND timestamp > ? LIMIT 1");
             $stmt->execute([$telegramChatId, $text, $direction, time() - 5]);
             if ($stmt->fetch()) {
-                return; 
+                return;
             }
         }
 
         $stmt = $this->db->prepare("INSERT INTO messages (telegram_chat_id, direction, text, media_type, media_path, message_id, timestamp) 
             VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$telegramChatId, $direction, $text, $mediaType, $mediaPath, $messageId, time()]);
-        
+
         // Update last message date in mappings
         $stmt = $this->db->prepare("UPDATE chat_mappings SET last_message_date = ? WHERE telegram_chat_id = ?");
         $stmt->execute([time(), $telegramChatId]);
@@ -133,10 +133,9 @@ class SqliteStorage
 
     public function getMessages(string $telegramChatId, int $limit = 50): array
     {
-        $stmt = $this->db->prepare("SELECT * FROM messages WHERE telegram_chat_id = ? ORDER BY id DESC LIMIT ?");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE telegram_chat_id = ? ORDER BY timestamp ASC LIMIT ?");
         $stmt->execute([$telegramChatId, $limit]);
-        $rows = $stmt->fetchAll();
-        return array_reverse($rows);
+        return $stmt->fetchAll();
     }
 
     public function getMessagesSince(string $telegramChatId, int $lastId, int $limit = 50): array

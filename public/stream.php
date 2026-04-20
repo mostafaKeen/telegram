@@ -6,7 +6,7 @@ require_once(__DIR__ . '/settings.php');
 
 header('Content-Type: application/json');
 
-$lastId = (int)($_GET['last_id'] ?? 0);
+$lastId = (int) ($_GET['last_id'] ?? 0);
 $chatId = $_GET['chat_id'] ?? '';
 
 try {

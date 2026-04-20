@@ -2,6 +2,25 @@
 
 declare(strict_types=1);
 
+// --- Disable All Caching ---
+// HTTP Headers for browser/proxy anti-caching
+if (!headers_sent()) {
+    header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1
+    header("Pragma: no-cache"); // HTTP 1.0
+    header("Expires: 0"); // Proxies
+}
+
+// Reset OPcache if available to ensure code changes are reflected immediately
+if (function_exists('opcache_reset')) {
+    @opcache_reset();
+}
+
+// Disable PHP internal caching behavior
+ini_set('session.cache_limiter', 'nocache');
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+// ---------------------------
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Symfony\Component\Dotenv\Dotenv;

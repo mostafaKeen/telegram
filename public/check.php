@@ -1,4 +1,5 @@
 <?php
+require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 header('Content-Type: text/plain');
 echo "Checking Server Environment...\n\n";
 
@@ -32,8 +33,8 @@ if (file_exists(__DIR__ . '/.env')) {
 
 echo "\nTesting Database Connection...\n";
 try {
-    $dbPath = __DIR__ . '/var/database.sqlite';
-    if (!is_dir(__DIR__ . '/var')) mkdir(__DIR__ . '/var', 0775, true);
+    $dbPath = __DIR__ . '/../var/database.sqlite';
+    if (!is_dir(__DIR__ . '/../var')) @mkdir(__DIR__ . '/../var', 0775, true);
     $db = new PDO('sqlite:' . $dbPath);
     echo "[DB] SQLite Connection: OK\n";
 } catch (Exception $e) {
