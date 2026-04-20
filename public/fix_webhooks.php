@@ -15,14 +15,22 @@ echo "Local Domain Detected: $baseUrl\n";
 
 // 2. Clear old event and bind new one
 echo "Unbinding old events...\n";
-CRest::call('event.unbind', ['event' => 'OnImConnectorMessageAdd']);
+$unbindRes = CRest::call('event.unbind', ['event' => 'OnImConnectorMessageAdd']);
+echo "Unbind Status: " . (isset($unbindRes['result']) ? "OK" : "SKIP/FAILED") . "\n";
 
-echo "Binding new live event handler...\n";
+echo "\nBinding new live event handler...\n";
 $bindRes = CRest::call('event.bind', [
     'event' => 'OnImConnectorMessageAdd',
     'handler' => $handlerUrl
 ]);
-echo "Result: " . (isset($bindRes['result']) ? "SUCCESS" : "FAILED") . "\n";
+
+if (isset($bindRes['result'])) {
+    echo "Result: SUCCESS\n";
+} else {
+    echo "Result: FAILED\n";
+    echo "Error: " . ($bindRes['error'] ?? 'Unknown Error') . "\n";
+    echo "Error Description: " . ($bindRes['error_description'] ?? 'No description') . "\n";
+}
 
 // 3. Detect correct Open Line
 echo "\nDetecting Open Line ID...\n";
