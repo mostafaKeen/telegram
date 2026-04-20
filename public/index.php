@@ -156,7 +156,7 @@ $v = time();
         });
 
         async function loadChats() {
-            const res = await fetch('api.php?action=list_chats');
+            const res = await fetch(`api.php?action=list_chats&v=${Date.now()}`);
             const data = await res.json();
             if (data.success) {
                 const list = document.getElementById('chatList');
@@ -198,7 +198,7 @@ $v = time();
             document.getElementById('currentAvatar').innerHTML = chat.photo_url ? `<img src="${chat.photo_url}">` : initials;
 
             // Load messages
-            const res = await fetch(`api.php?action=get_messages&chat_id=${currentChatId}`);
+            const res = await fetch(`api.php?action=get_messages&chat_id=${currentChatId}&v=${Date.now()}`);
             const data = await res.json();
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
@@ -252,7 +252,7 @@ $v = time();
         function startGlobalStream() {
             setInterval(async () => {
                 try {
-                    const res = await fetch(`stream.php?last_id=${lastSidebarMessageId}`);
+                    const res = await fetch(`stream.php?last_id=${lastSidebarMessageId}&v=${Date.now()}`);
                     const data = await res.json();
                     if (data.success && data.messages.length > 0) {
                         data.messages.forEach(msg => {
@@ -280,7 +280,7 @@ $v = time();
             window.chatInterval = setInterval(async () => {
                 if (currentChatId !== chatId) return;
                 try {
-                    const res = await fetch(`stream.php?chat_id=${chatId}&last_id=${lastMessageId}`);
+                    const res = await fetch(`stream.php?chat_id=${chatId}&last_id=${lastMessageId}&v=${Date.now()}`);
                     const data = await res.json();
                     if (data.success && data.messages.length > 0) {
                         data.messages.forEach(msg => {

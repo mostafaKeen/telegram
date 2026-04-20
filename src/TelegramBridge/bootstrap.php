@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+// Disable PHP internal caching behavior
+ini_set('session.cache_limiter', 'nocache');
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+
 // --- Disable All Caching ---
 // HTTP Headers for browser/proxy anti-caching
 if (!headers_sent()) {
@@ -14,11 +19,6 @@ if (!headers_sent()) {
 if (function_exists('opcache_reset')) {
     @opcache_reset();
 }
-
-// Disable PHP internal caching behavior
-ini_set('session.cache_limiter', 'nocache');
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
 // ---------------------------
 
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -68,7 +68,7 @@ $eventDispatcher = new EventDispatcher();
  */
 function buildServiceBuilder(
     string $portalUrl,
-    SqliteStorage $storage,
+    JsonStorage $storage,
     ApplicationProfile $appProfile,
     Logger $logger,
     EventDispatcher $eventDispatcher
