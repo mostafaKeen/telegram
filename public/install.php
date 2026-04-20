@@ -50,6 +50,12 @@ if ($install_result['install'] === true) {
     );
 
     // 2. Bind the OnImConnectorMessageAdd event (Bitrix24 -> Telegram)
+    // First, try to unbind any old handler to avoid double-firing or conflicting with old URLs
+    CRest::call('event.unbind', [
+        'event' => 'OnImConnectorMessageAdd',
+        'handler' => $eventHandlerUrl
+    ]);
+
     $eventRes = CRest::call(
         'event.bind',
         [

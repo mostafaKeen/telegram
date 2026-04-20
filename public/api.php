@@ -96,9 +96,13 @@ try {
                 'CONNECTOR' => 'telegram_bridge',
                 'LINE' => $lineId,
                 'MESSAGES' => [[
-                    'user' => ['id' => '0', 'name' => 'Agent'],
-                    'message' => $b24Message,
-                    'chat' => ['id' => $chatId]
+                    // Using the Telegram User ID so B24 routes it to the correct chat session.
+                    'user' => ['id' => (string)$chatId],
+                    'message' => [
+                        'text' => "[Agent reply via Dashboard]: \n" . $text,
+                        'files' => $b24Message['files'] ?? []
+                    ],
+                    'chat' => ['id' => (string)$chatId]
                 ]]
             ]);
 
