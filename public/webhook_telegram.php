@@ -1,10 +1,29 @@
 <?php
 declare(strict_types=1);
 
-// Respond 200 immediately so Telegram never marks this webhook as failing
-// and never retries, even if processing takes time.
+// Phase 1: Respond 200 OK to Telegram immediately. 
+// This prevents Telegram from timing out or retrying (which causes 409 Conflicts).
 http_response_code(200);
-file_put_contents(__DIR__.'/__hit.txt', date('Y-m-d H:i:s') . PHP_EOL, FILE_APPEND);
+
+// Optional: If running under PHP-FPM, we can close the connection but keep processing.
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+} else {
+    // Fallback for non-FPM: Use output buffering to simulate a fast close
+    ignore_user_abort(true);
+    ob_start();
+    echo "OK";
+    header("Content-Length: " . ob_get_length());
+    header("Connection: close");
+    ob_end_flush();
+    @ob_flush();
+    flush();
+}
+
+// Phase 2: Start actual processing. 
+// Use error_log for persistent debugging that bypasses file permission issues on __hit.txt
+error_log("Telegram Webhook Hit: " . date('Y-m-d H:i:s'));
+
 require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 require_once(__DIR__ . '/settings.php');
 require_once(__DIR__ . '/crest.php');
@@ -86,6 +105,10 @@ try {
 
     // Forward to Bitrix24
     $settingsFile = __DIR__ . '/settings.json';
+    if (!file_exists($settingsFile)) {
+        error_log("Telegram Webhook Error: settings.json is missing in " . __DIR__);
+        exit();
+    }
     $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
     $lineId = $settings['open_line_id'] ?? 1;
 
@@ -136,5 +159,6 @@ try {
     CRest::setLog(['send_result' => $result], 'telegram_to_b24');
 
 } catch (Throwable $e) {
+    error_log("Telegram Webhook Fatal Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     CRest::setLog(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 'telegram_error');
 }

@@ -8,14 +8,14 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 // --- Disable All Caching ---
-// HTTP Headers for browser/proxy anti-caching
+// Only send headers if we haven't already responded (webhooks respond early)
 if (!headers_sent()) {
-    header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1
-    header("Pragma: no-cache"); // HTTP 1.0
-    header("Expires: 0"); // Proxies
+    header("Cache-Control: no-cache, no-store, must-revalidate");
+    header("Pragma: no-cache");
+    header("Expires: 0");
 }
 
-// Reset OPcache if available to ensure code changes are reflected immediately
+// Reset OPcache if available
 if (function_exists('opcache_reset')) {
     @opcache_reset();
 }
