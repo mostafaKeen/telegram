@@ -62,10 +62,14 @@ try {
         // 1. Handle Files
         if (!empty($files)) {
             foreach ($files as $index => $file) {
-                $fileUrl  = $file['url'] ?? '';
+                // Use downloadLink if available (common in IM events), fallback to url or link
+                $fileUrl  = $file['downloadLink'] ?? $file['url'] ?? $file['link'] ?? '';
                 $fileName = $file['name'] ?? 'file';
                 
-                if (!$fileUrl) continue;
+                if (!$fileUrl) {
+                    CRest::setLog(['skip_file' => 'missing url/link', 'file' => $file], 'b24_event_skip');
+                    continue;
+                }
 
                 // Download file
                 $tempPath = __DIR__ . '/uploads/tmp_' . bin2hex(random_bytes(8)) . '_' . $fileName;
