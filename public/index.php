@@ -83,6 +83,15 @@ $v = time();
                         <button class="btn-icon" id="cancelRecordBtn" style="color: white;"><i class="fas fa-times"></i></button>
                     </div>
 
+                    <div id="reviewUi" class="review-ui">
+                        <button class="btn-icon btn-play" id="playReviewBtn"><i class="fas fa-play"></i></button>
+                        <span id="reviewLabel">Review recording</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-icon btn-discard" id="discardRecordBtn"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon btn-confirm" id="confirmSendBtn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+
                     <button class="btn-icon" id="recordBtn"><i class="fas fa-microphone"></i></button>
                     <button class="btn-icon btn-send" id="sendBtn" style="display: none;"><i class="fas fa-paper-plane"></i></button>
                 </div>
@@ -103,6 +112,8 @@ $v = time();
         let mediaRecorder = null;
         let audioChunks = [];
         let currentB24User = null;
+        let currentVoiceBlob = null;
+        let reviewAudio = new Audio();
 
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof BX24 !== 'undefined') {
@@ -161,6 +172,13 @@ $v = time();
             // Voice Recording
             recordBtn.addEventListener('click', startRecording);
             document.getElementById('cancelRecordBtn').addEventListener('click', stopRecording);
+            document.getElementById('discardRecordBtn').addEventListener('click', discardVoice);
+            document.getElementById('confirmSendBtn').addEventListener('click', confirmUploadVoice);
+            document.getElementById('playReviewBtn').addEventListener('click', toggleReviewPlayback);
+
+            reviewAudio.onended = () => {
+                document.getElementById('playReviewBtn').innerHTML = '<i class="fas fa-play"></i>';
+            };
         });
 
         async function loadChats() {
@@ -348,7 +366,14 @@ $v = time();
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
             mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = uploadVoice;
+            mediaRecorder.onstop = () => {
+                currentVoiceBlob = new Blob(audioChunks, { type: 'audio/ogg' });
+                const url = URL.createObjectURL(currentVoiceBlob);
+                reviewAudio.src = url;
+                
+                document.getElementById('recordingUi').style.display = 'none';
+                document.getElementById('reviewUi').style.display = 'flex';
+            };
             mediaRecorder.start();
             document.getElementById('recordBtn').style.display = 'none';
             document.getElementById('recordingUi').style.display = 'flex';
@@ -358,22 +383,47 @@ $v = time();
         function stopRecording() {
             if (mediaRecorder) {
                 mediaRecorder.stop();
-                document.getElementById('recordingUi').style.display = 'none';
-                document.getElementById('recordBtn').style.display = 'flex';
                 stopTimer();
+                // mediaRecorder.onstop will handle UI transition
             }
         }
 
-        async function uploadVoice() {
-            const blob = new Blob(audioChunks, { type: 'audio/ogg' });
+        function discardVoice() {
+            currentVoiceBlob = null;
+            reviewAudio.pause();
+            reviewAudio.src = '';
+            document.getElementById('reviewUi').style.display = 'none';
+            document.getElementById('recordBtn').style.display = 'flex';
+            document.getElementById('playReviewBtn').innerHTML = '<i class="fas fa-play"></i>';
+        }
+
+        function toggleReviewPlayback() {
+            const btn = document.getElementById('playReviewBtn');
+            if (reviewAudio.paused) {
+                reviewAudio.play();
+                btn.innerHTML = '<i class="fas fa-pause"></i>';
+            } else {
+                reviewAudio.pause();
+                btn.innerHTML = '<i class="fas fa-play"></i>';
+            }
+        }
+
+        async function confirmUploadVoice() {
+            if (!currentVoiceBlob) return;
+            
             const formData = new FormData();
             formData.append('chat_id', currentChatId);
-            formData.append('file', blob, 'voice.ogg');
+            formData.append('file', currentVoiceBlob, 'voice.ogg');
             formData.append('is_voice', '1');
             if (currentB24User) {
                 formData.append('agent_name', currentB24User.NAME + ' ' + (currentB24User.LAST_NAME || ''));
                 formData.append('agent_id', currentB24User.ID);
             }
+            
+            // Show loading or optimistic UI? 
+            // For now just hide review and reset
+            discardVoice();
+            
             await fetch('api.php?action=send_message', { method: 'POST', body: formData });
         }
 

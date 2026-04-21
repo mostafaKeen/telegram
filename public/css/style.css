@@ -291,7 +291,7 @@ body {
 }
 
 /* Recording UI */
-.recording-ui {
+.recording-ui, .review-ui {
     background: #ff4757;
     color: white;
     padding: 8px 16px;
@@ -299,7 +299,30 @@ body {
     display: none;
     align-items: center;
     gap: 12px;
+}
+
+.recording-ui {
     animation: pulse 1.5s infinite;
+}
+
+.review-ui {
+    background: #2f3542;
+    animation: none;
+}
+
+.review-ui .btn-confirm {
+    background: var(--primary);
+    color: white;
+}
+
+.review-ui .btn-discard {
+    background: #ff4757;
+    color: white;
+}
+
+.review-ui .btn-play {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
 @keyframes pulse {
