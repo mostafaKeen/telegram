@@ -39,10 +39,16 @@ try {
         $messageText    = $msg['message']['text'] ?? '';
         $imMsgId        = $msg['im'] ?? null;
         $files          = $msg['message']['files'] ?? [];
+        $b24ChatId      = (string)($msg['im']['chat_id'] ?? ''); // Extract B24 Chat ID
 
         if (empty($telegramChatId)) {
             CRest::setLog(['skip' => 'missing chat_id', 'msg' => $msg], 'b24_event_skip');
             continue;
+        }
+
+        // Save mapping between Telegram chat and Bitrix24 chat
+        if ($b24ChatId) {
+            $storage->saveMapping($telegramChatId, $b24ChatId, '');
         }
 
         // Clean Bitrix24 formatting

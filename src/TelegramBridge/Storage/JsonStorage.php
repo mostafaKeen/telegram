@@ -146,7 +146,7 @@ class JsonStorage
         $files = glob("{$this->leadsPath}/*.json");
         foreach ($files as $file) {
             $data = json_decode(file_get_contents($file), true);
-            if (($data['mapping']['b24_connector_chat_id'] ?? '') === $b24ConnectorChatId) {
+            if (($data['mapping']['b24_connector_chat_id'] ?? '') == $b24ConnectorChatId) {
                 return (string)$data['telegram_chat_id'];
             }
         }

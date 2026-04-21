@@ -158,6 +158,23 @@ try {
 
     CRest::setLog(['send_result' => $result], 'telegram_to_b24');
 
+    // Extract B24 Chat ID from the result and save mapping
+    $b24ChatId = null;
+    if (isset($result['result']) && is_array($result['result'])) {
+        // Bitrix24 might return an array of results for each message, or a single object
+        if (isset($result['result'][0]['chat']['id'])) {
+            $b24ChatId = (string)$result['result'][0]['chat']['id'];
+        } elseif (isset($result['result']['chat_id'])) {
+            $b24ChatId = (string)$result['result']['chat_id'];
+        } elseif (isset($result['result'][0]['chat_id'])) {
+            $b24ChatId = (string)$result['result'][0]['chat_id'];
+        }
+    }
+
+    if ($b24ChatId) {
+        $storage->saveMapping($telegramChatId, $b24ChatId, '');
+    }
+
 } catch (Throwable $e) {
     error_log("Telegram Webhook Fatal Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     CRest::setLog(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 'telegram_error');
