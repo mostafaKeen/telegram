@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+// Respond 200 immediately so Telegram never marks this webhook as failing
+// and never retries, even if processing takes time.
+http_response_code(200);
+
 require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 require_once(__DIR__ . '/settings.php');
 require_once(__DIR__ . '/crest.php');
@@ -9,8 +13,14 @@ require_once(__DIR__ . '/../src/TelegramBridge/MediaService.php');
 use Bitrix24\TelegramBridge\MediaService;
 
 try {
+    // Auto-detect base URL for production (fallback if .env APP_BASE_URL is stale/ngrok)
     $appBaseUrl = $_ENV['APP_BASE_URL'] ?? $_SERVER['APP_BASE_URL'] ?? '';
-    // ...
+    if (empty($appBaseUrl) || strpos($appBaseUrl, 'ngrok') !== false) {
+        $proto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host       = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptDir  = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/public/webhook_telegram.php'));
+        $appBaseUrl = $proto . '://' . $host . $scriptDir;
+    }
     $input = file_get_contents('php://input');
     $update = json_decode($input, true);
 
@@ -29,8 +39,7 @@ try {
     $lastName = $user['last_name'] ?? '';
     $username = $user['username'] ?? '';
 
-    // Initialize Services
-    $appBaseUrl = $_ENV['APP_BASE_URL'] ?? $_SERVER['APP_BASE_URL'] ?? '';
+    // Initialize Services (use the auto-detected $appBaseUrl from above — do NOT re-read from .env here)
     $mediaService = new MediaService(TELEGRAM_BOT_TOKEN, __DIR__ . '/uploads/', $appBaseUrl);
     
     // Save/Update Chat Info
@@ -80,17 +89,16 @@ try {
     $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
     $lineId = $settings['open_line_id'] ?? 1;
 
-    // Bitrix24 requires message.text to be a non-empty string.
-    // If the user sent only media (no caption), use a descriptive placeholder.
+    // Bitrix24 requires message.text to be non-empty even when files are present.
+    // Use a descriptive placeholder so imconnector.send.messages doesn't reject with "Incomplete data".
+    // NOTE: if/elseif used instead of match() for PHP 7.x compatibility.
     $b24Text = $text;
     if (empty($b24Text)) {
-        $b24Text = match($mediaType) {
-            'photo'    => '📷 Photo',
-            'voice'    => '🎤 Voice message',
-            'document' => '📄 Document',
-            'video'    => '🎥 Video',
-            default    => '📎 Attachment',
-        };
+        if ($mediaType === 'photo')         { $b24Text = 'Photo'; }
+        elseif ($mediaType === 'voice')     { $b24Text = 'Voice message'; }
+        elseif ($mediaType === 'document')  { $b24Text = 'Document'; }
+        elseif ($mediaType === 'video')     { $b24Text = 'Video'; }
+        else                               { $b24Text = 'Attachment'; }
     }
 
     $b24Message = [

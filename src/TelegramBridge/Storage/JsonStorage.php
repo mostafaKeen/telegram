@@ -104,6 +104,22 @@ class JsonStorage
         $this->writeJson($file, $data);
     }
 
+    /**
+     * Retrieve stored chat info (first_name, last_name, username, etc.)
+     * Returns an empty array if no data exists for this chat.
+     */
+    public function getChatInfo(string $telegramChatId): array
+    {
+        $file = "{$this->leadsPath}/{$telegramChatId}.json";
+        $data = $this->readJson($file, []);
+        return [
+            'first_name' => $data['first_name'] ?? '',
+            'last_name'  => $data['last_name'] ?? '',
+            'username'   => $data['username'] ?? '',
+            'photo_url'  => $data['photo_url'] ?? null,
+        ];
+    }
+
     public function saveMapping(string $telegramChatId, string $b24ConnectorChatId, string $b24SessionId): void
     {
         $file = "{$this->leadsPath}/{$telegramChatId}.json";

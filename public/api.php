@@ -9,7 +9,13 @@ require_once(__DIR__ . '/../src/TelegramBridge/MediaService.php');
 use Bitrix24\TelegramBridge\MediaService;
 
 $action = $_GET['action'] ?? '';
-$appBaseUrl = $_ENV['APP_BASE_URL'] ?? $_SERVER['APP_BASE_URL'] ?? (($_SERVER['HTTPS'] ?? 'off') === 'on' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+// Auto-detect base URL — never use stale ngrok URLs on production
+$appBaseUrl = $_ENV['APP_BASE_URL'] ?? $_SERVER['APP_BASE_URL'] ?? '';
+if (empty($appBaseUrl) || strpos($appBaseUrl, 'ngrok') !== false) {
+    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $appBaseUrl = $proto . '://' . $host;
+}
 header('Content-Type: application/json');
 
 try {
@@ -82,34 +88,51 @@ try {
             if (file_exists($settingsFile)) {
                 $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
             }
-            $lineId = $settings['open_line_id'] ?? '1'; // Default to '1' but try to detect
+            $lineId = $settings['open_line_id'] ?? '1';
 
-            $b24Message = ['text' => $text];
+            // Get chat info for proper user identification in B24
+            $chatInfo = $storage->getChatInfo($chatId);
+            $userName  = trim(($chatInfo['first_name'] ?? '') . ' ' . ($chatInfo['last_name'] ?? ''));
+
+            // Build message payload — text must be non-empty for B24
+            $b24Text = $text;
+            if (empty($b24Text)) {
+                if ($mediaType === 'voice')        { $b24Text = 'Voice message'; }
+                elseif ($mediaType === 'document') { $b24Text = 'Document'; }
+                else                               { $b24Text = 'Attachment'; }
+            }
+
+            $b24Msg = [
+                'text' => $b24Text,
+            ];
             if ($mediaPath) {
-                $b24Message['files'] = [[
-                    'url' => $appBaseUrl . '/public/uploads/' . $mediaPath,
-                    'name' => $mediaPath
+                $b24Msg['files'] = [[
+                    'url'  => $appBaseUrl . '/public/uploads/' . $mediaPath,
+                    'name' => $mediaPath,
                 ]];
             }
 
             $b24Result = CRest::call('imconnector.send.messages', [
                 'CONNECTOR' => 'telegram_bridge',
-                'LINE' => $lineId,
-                'MESSAGES' => [[
-                    // Using the Telegram User ID so B24 routes it to the correct chat session.
-                    'user' => ['id' => (string)$chatId],
-                    'message' => [
-                        'text' => "[Agent reply via Dashboard]: \n" . $text,
-                        'files' => $b24Message['files'] ?? []
+                'LINE'      => $lineId,
+                'MESSAGES'  => [[
+                    'user' => [
+                        'id'        => (string)$chatId,
+                        'name'      => $chatInfo['first_name'] ?? ($userName ?: 'Telegram User'),
+                        'last_name' => $chatInfo['last_name'] ?? '',
                     ],
-                    'chat' => ['id' => (string)$chatId]
-                ]]
+                    'message' => $b24Msg,
+                    'chat'    => [
+                        'id'   => (string)$chatId,
+                        'name' => 'Telegram: ' . ($userName ?: $chatId),
+                    ],
+                ]],
             ]);
 
             CRest::setLog([
-                'chat_id' => $chatId,
-                'line_id' => $lineId,
-                'b24_response' => $b24Result
+                'chat_id'      => $chatId,
+                'line_id'      => $lineId,
+                'b24_response' => $b24Result,
             ], 'api_to_b24_sync');
 
             echo json_encode(['success' => true]);

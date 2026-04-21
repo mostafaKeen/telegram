@@ -97,7 +97,9 @@ if ($install_result['install'] === true) {
     );
 
     // 4. Set Telegram Bot Webhook
+    // IMPORTANT: Must delete the old webhook first to avoid 409 Conflict errors
     $botToken = TELEGRAM_BOT_TOKEN;
+    @file_get_contents("https://api.telegram.org/bot{$botToken}/deleteWebhook");
     $setWebhookResult = file_get_contents(
         "https://api.telegram.org/bot{$botToken}/setWebhook?url=" . urlencode($telegramWebhookUrl)
     );
