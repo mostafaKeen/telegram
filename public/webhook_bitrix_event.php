@@ -26,10 +26,19 @@ try {
         exit();
     }
 
+    // Load settings for Line ID
+    $settingsFile = __DIR__ . '/settings.json';
+    $settings = [];
+    if (file_exists($settingsFile)) {
+        $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+    }
+    $lineId = $settings['open_line_id'] ?? '1';
+
     foreach ($messages as $msg) {
         $chatId = $msg['im']['chat_id'] ?? '';
-        $messageText = $msg['message']['text'] ?? ''; // Corrected path
-        $telegramChatId = ($msg['chat']['id'] ?? '');
+        $messageText = $msg['message']['text'] ?? '';
+        $telegramChatId = (string)($msg['chat']['id'] ?? '');
+        $imMsgId = $msg['im'] ?? null;
 
         if (empty($telegramChatId) || empty($messageText)) {
             CRest::setLog(['skip' => 'missing chat_id or text', 'msg' => $msg], 'b24_event_skip');
@@ -38,19 +47,12 @@ try {
 
         // Clean Bitrix24 formatting like [b]User:[/b] and [br]
         $cleanText = preg_replace('/\[b\].*?\[\/b\]\s*\[br\]\s*/i', '', $messageText);
+        $cleanText = str_ireplace(['[br]', '[BR]'], "\n", $cleanText);
         $cleanText = strip_tags($cleanText);
         $cleanText = trim($cleanText);
 
-        // Deduplication: Only skip if it's an UNCANNY duplicate (same text, same chat, within 2 seconds)
-        // This prevents blocking agents who send multiple short replies.
-        $stmt = $db->prepare("SELECT id FROM messages WHERE telegram_chat_id = ? AND text = ? AND direction = 'OUT' AND timestamp > ? LIMIT 1");
-        $stmt->execute([$telegramChatId, $cleanText, time() - 2]); 
-        if ($stmt->fetch()) {
-            CRest::setLog(['skip' => 'near-instant duplicate', 'text' => $cleanText], 'b24_event_skip');
-            continue;
-        }
-
-        // 1. Save to local DB (Direction: OUT)
+        // 1. Save to local JSON DB (Direction: OUT)
+        // JsonStorage handles its own deduplication internally
         $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text');
 
         // 2. Send to Telegram
@@ -68,12 +70,31 @@ try {
         $error = curl_error($ch);
         curl_close($ch);
 
+        $tgResult = json_decode((string)$response, true);
+        $msgId = $tgResult['result']['message_id'] ?? uniqid('b24_');
+
         CRest::setLog([
             'telegram_chat_id' => $telegramChatId,
             'text' => $cleanText,
             'response' => $response,
             'curl_error' => $error,
         ], 'b24_to_telegram');
+
+        // 3. Push delivery status to Bitrix24 (required to stop "loading" spinner)
+        if ($lineId && $imMsgId) {
+            $deliveryStatus = CRest::call('imconnector.send.status.delivery', [
+                'CONNECTOR' => 'telegram_bridge',
+                'LINE' => $lineId,
+                'MESSAGES' => [
+                    [
+                        'im' => $imMsgId,
+                        'message' => ['id' => [$msgId]],
+                        'chat' => ['id' => $telegramChatId]
+                    ]
+                ]
+            ]);
+            CRest::setLog(['delivery_status' => $deliveryStatus, 'msg_id' => $msgId], 'b24_delivery_report');
+        }
     }
 
 } catch (Throwable $e) {
