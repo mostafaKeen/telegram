@@ -68,9 +68,12 @@ try {
             // Log to debug mismatch
             CRest::setLog(['lookup_chats' => $chatRes['result']], 'sms_debug');
             
-            foreach ($chatRes['result'] as $b24ChatId) {
+            foreach ($chatRes['result'] as $chatObj) {
+                if (!isset($chatObj['CHAT_ID'])) continue;
+                
+                $b24ChatId = (string)$chatObj['CHAT_ID'];
+                
                 // Try both the raw ID and prefixed variants
-                $b24ChatId = (string)$b24ChatId;
                 $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
                 if ($telegramChatId) break;
 
