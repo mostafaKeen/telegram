@@ -51,16 +51,19 @@ CRest::call('imconnector.activate', [
     'ACTIVE' => 1
 ]);
 
-// 5. Save settings locally
+// 5. Save settings locally — MERGE into existing file to preserve OAuth tokens
 echo "\nSaving settings to settings.json...\n";
 $settingsFile = __DIR__ . '/settings.json';
-$settings = [
-    'open_line_id' => $lineId,
-    'server_url' => $baseUrl,
-    'last_sync' => date('Y-m-d H:i:s')
-];
-if(file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT))) {
-    echo "Settings saved successfully.\n";
+$existing = [];
+if (file_exists($settingsFile)) {
+    $existing = json_decode(file_get_contents($settingsFile), true) ?: [];
+}
+// Only update the fields we detected — leave everything else (tokens, etc.) intact
+$existing['open_line_id'] = $lineId;
+$existing['server_url']   = $baseUrl;
+$existing['last_sync']    = date('Y-m-d H:i:s');
+if (file_put_contents($settingsFile, json_encode($existing, JSON_PRETTY_PRINT))) {
+    echo "Settings saved successfully (tokens preserved).\n";
 } else {
     echo "ERROR: settings.json is NOT writable!\n";
 }

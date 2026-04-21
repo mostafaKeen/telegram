@@ -35,13 +35,12 @@ try {
     $lineId = $settings['open_line_id'] ?? '1';
 
     foreach ($messages as $msg) {
-        $chatId = $msg['im']['chat_id'] ?? '';
-        $messageText = $msg['message']['text'] ?? '';
         $telegramChatId = (string)($msg['chat']['id'] ?? '');
-        $imMsgId = $msg['im'] ?? null;
+        $messageText    = $msg['message']['text'] ?? '';
+        $imMsgId        = $msg['im'] ?? null;
 
-        if (empty($telegramChatId) || empty($messageText)) {
-            CRest::setLog(['skip' => 'missing chat_id or text', 'msg' => $msg], 'b24_event_skip');
+        if (empty($telegramChatId)) {
+            CRest::setLog(['skip' => 'missing chat_id', 'msg' => $msg], 'b24_event_skip');
             continue;
         }
 
@@ -51,12 +50,13 @@ try {
         $cleanText = strip_tags($cleanText);
         $cleanText = trim($cleanText);
 
-        // 1. Save to local JSON DB (Direction: OUT)
-        // JsonStorage handles its own deduplication internally
-        $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text');
+        if (empty($cleanText)) {
+            CRest::setLog(['skip' => 'empty text after cleaning', 'msg' => $msg], 'b24_event_skip');
+            continue;
+        }
 
-        // 2. Send to Telegram
-        $botToken = TELEGRAM_BOT_TOKEN;
+        // 1. Send to Telegram FIRST — storage errors must not block delivery
+        $botToken    = TELEGRAM_BOT_TOKEN;
         $telegramUrl = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
         $ch = curl_init($telegramUrl);
@@ -64,36 +64,50 @@ try {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
             'chat_id' => $telegramChatId,
-            'text' => $cleanText,
+            'text'    => $cleanText,
         ]));
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
+        $response  = curl_exec($ch);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
         $tgResult = json_decode((string)$response, true);
-        $msgId = $tgResult['result']['message_id'] ?? uniqid('b24_');
+        $msgId    = $tgResult['result']['message_id'] ?? uniqid('b24_');
 
         CRest::setLog([
             'telegram_chat_id' => $telegramChatId,
-            'text' => $cleanText,
-            'response' => $response,
-            'curl_error' => $error,
+            'text'             => $cleanText,
+            'response'         => $tgResult,
+            'curl_error'       => $curlError,
         ], 'b24_to_telegram');
 
-        // 3. Push delivery status to Bitrix24 (required to stop "loading" spinner)
+        // 2. Save to local storage (non-blocking — errors don't affect delivery)
+        try {
+            $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text');
+        } catch (Throwable $storageErr) {
+            CRest::setLog([
+                'warning'  => 'Storage save failed (message was still delivered to Telegram)',
+                'error'    => $storageErr->getMessage(),
+                'chat_id'  => $telegramChatId,
+            ], 'b24_storage_warning');
+        }
+
+        // 3. Push delivery status to Bitrix24 (stops the "loading" spinner)
         if ($lineId && $imMsgId) {
             $deliveryStatus = CRest::call('imconnector.send.status.delivery', [
                 'CONNECTOR' => 'telegram_bridge',
-                'LINE' => $lineId,
-                'MESSAGES' => [
+                'LINE'      => $lineId,
+                'MESSAGES'  => [
                     [
-                        'im' => $imMsgId,
+                        'im'      => $imMsgId,
                         'message' => ['id' => [$msgId]],
-                        'chat' => ['id' => $telegramChatId]
+                        'chat'    => ['id' => $telegramChatId]
                     ]
                 ]
             ]);
-            CRest::setLog(['delivery_status' => $deliveryStatus, 'msg_id' => $msgId], 'b24_delivery_report');
+            CRest::setLog([
+                'delivery_status' => $deliveryStatus,
+                'msg_id'          => $msgId,
+            ], 'b24_delivery_report');
         }
     }
 

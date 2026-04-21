@@ -80,10 +80,23 @@ try {
     $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
     $lineId = $settings['open_line_id'] ?? 1;
 
+    // Bitrix24 requires message.text to be a non-empty string.
+    // If the user sent only media (no caption), use a descriptive placeholder.
+    $b24Text = $text;
+    if (empty($b24Text)) {
+        $b24Text = match($mediaType) {
+            'photo'    => '📷 Photo',
+            'voice'    => '🎤 Voice message',
+            'document' => '📄 Document',
+            'video'    => '🎥 Video',
+            default    => '📎 Attachment',
+        };
+    }
+
     $b24Message = [
-        'id' => (string)$message['message_id'],
+        'id'   => (string)$message['message_id'],
         'date' => $message['date'],
-        'text' => $text,
+        'text' => $b24Text,
     ];
     if (!empty($b24Files)) {
         $b24Message['files'] = $b24Files;
@@ -93,17 +106,18 @@ try {
         'imconnector.send.messages',
         [
             'CONNECTOR' => 'telegram_bridge',
-            'LINE' => $lineId,
-            'MESSAGES' => [
+            'LINE'      => $lineId,
+            'MESSAGES'  => [
                 [
                     'user' => [
-                        'id' => (string)$user['id'],
-                        'name' => $userName ?: 'Telegram User',
-                        'picture' => ['url' => 'https://ui-avatars.com/api/?name=' . urlencode($userName ?: 'TG') . '&background=2CA5E0&color=fff'],
+                        'id'        => (string)$user['id'],
+                        'name'      => $firstName ?: ($userName ?: 'Telegram User'),
+                        'last_name' => $lastName,
+                        'picture'   => ['url' => 'https://ui-avatars.com/api/?name=' . urlencode($userName ?: 'TG') . '&background=2CA5E0&color=fff'],
                     ],
                     'message' => $b24Message,
                     'chat' => [
-                        'id' => $telegramChatId,
+                        'id'   => $telegramChatId,
                         'name' => 'Telegram: ' . ($userName ?: $telegramChatId),
                     ],
                 ],
