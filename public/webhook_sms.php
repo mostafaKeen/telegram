@@ -16,11 +16,28 @@ $phoneNumber = $input['phone_number'] ?? '';
 $entityId = null;
 $entityType = null;
 
-if (is_array($entities)) {
-    foreach ($entities as $entity) {
+// Handle 'entities' format (documented in some B24 versions)
+if (isset($input['entities']) && is_array($input['entities'])) {
+    foreach ($input['entities'] as $entity) {
         if (isset($entity['entity_type']) && in_array($entity['entity_type'], ['LEAD', 'CONTACT'])) {
-            $entityType = $entity['entity_type'];
-            $entityId = $entity['entity_id'];
+            $entityType = (string)$entity['entity_type'];
+            $entityId = (string)$entity['entity_id'];
+            break;
+        }
+    }
+}
+
+// Handle 'bindings' format (commonly sent by the CRM module)
+if (!$entityId && isset($input['bindings']) && is_array($input['bindings'])) {
+    foreach ($input['bindings'] as $binding) {
+        $typeId = (int)($binding['OWNER_TYPE_ID'] ?? 0);
+        if ($typeId === 1) { // LEAD
+            $entityType = 'LEAD';
+            $entityId = (string)($binding['OWNER_ID'] ?? '');
+            break;
+        } elseif ($typeId === 3) { // CONTACT
+            $entityType = 'CONTACT';
+            $entityId = (string)($binding['OWNER_ID'] ?? '');
             break;
         }
     }
