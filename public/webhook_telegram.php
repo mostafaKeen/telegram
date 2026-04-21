@@ -160,19 +160,24 @@ try {
 
     // Extract B24 Chat ID from the result and save mapping
     $b24ChatId = null;
-    if (isset($result['result']) && is_array($result['result'])) {
-        // Bitrix24 might return an array of results for each message, or a single object
-        if (isset($result['result'][0]['chat']['id'])) {
-            $b24ChatId = (string)$result['result'][0]['chat']['id'];
-        } elseif (isset($result['result']['chat_id'])) {
-            $b24ChatId = (string)$result['result']['chat_id'];
-        } elseif (isset($result['result'][0]['chat_id'])) {
-            $b24ChatId = (string)$result['result'][0]['chat_id'];
+    if (!empty($result['result'])) {
+        $res = $result['result'];
+        // Flatten all possible response shapes
+        $b24ChatId = $res[0]['chat']['id']
+            ?? $res['chat_id']
+            ?? $res[0]['chat_id']
+            ?? $res[0]['im']['chat_id']
+            ?? null;
+        if ($b24ChatId) {
+            $b24ChatId = (string)$b24ChatId;
         }
     }
 
+    $phoneNumber = $message['contact']['phone_number'] ?? null;
+
     if ($b24ChatId) {
-        $storage->saveMapping($telegramChatId, $b24ChatId, '');
+        $storage->saveMapping($telegramChatId, $b24ChatId, '', $phoneNumber);
+        CRest::setLog(['saved_mapping' => ['telegram' => $telegramChatId, 'b24' => $b24ChatId, 'phone' => $phoneNumber]], 'sms_debug');
     }
 
 } catch (Throwable $e) {

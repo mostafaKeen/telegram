@@ -46,9 +46,13 @@ try {
             continue;
         }
 
+        // Attempt to extract phone number if present in user data
+        $phoneNumber = $msg['user']['phone'] ?? $msg['user']['phone_number'] ?? null;
+
         // Save mapping between Telegram chat and Bitrix24 chat
         if ($b24ChatId) {
-            $storage->saveMapping($telegramChatId, $b24ChatId, '');
+            $storage->saveMapping($telegramChatId, $b24ChatId, '', $phoneNumber);
+            CRest::setLog(['saved_mapping' => ['telegram' => $telegramChatId, 'b24' => $b24ChatId, 'phone' => $phoneNumber]], 'sms_debug');
         }
 
         // Clean Bitrix24 formatting

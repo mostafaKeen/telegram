@@ -48,22 +48,37 @@ try {
         throw new Exception("No CRM entity (Lead/Contact) associated with this request.");
     }
 
-    // 2. Find associated Open Channel Chat via Bitrix24
-    $chatRes = CRest::call('imopenlines.crm.chat.get', [
-        'CRM_ENTITY_TYPE' => $entityType,
-        'CRM_ENTITY'      => $entityId
-    ]);
+    // 2. Get all mappings and find Telegram chat via CRM
+    $telegramChatId = null;
 
-    $b24ChatId = null;
-    if (!empty($chatRes['result'])) {
-        // Use the most recent chat ID
-        $b24ChatId = (string)end($chatRes['result']);
+    // First try: look up by phone number directly in storage
+    if ($phoneNumber) {
+        $telegramChatId = $storage->getTelegramIdByPhone($phoneNumber);
     }
 
-    // 3. Lookup Telegram Chat ID in local storage
-    $telegramChatId = null;
-    if ($b24ChatId) {
-        $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
+    // Second try: find via B24 open line chat ID
+    if (!$telegramChatId && $entityId) {
+        // Get ALL chats for this entity, not just one
+        $chatRes = CRest::call('imopenlines.crm.chat.get', [
+            'CRM_ENTITY_TYPE' => $entityType,
+            'CRM_ENTITY'      => $entityId
+        ]);
+
+        if (!empty($chatRes['result'])) {
+            // Log to debug mismatch
+            CRest::setLog(['lookup_chats' => $chatRes['result']], 'sms_debug');
+            
+            foreach ($chatRes['result'] as $b24ChatId) {
+                // Try both the raw ID and prefixed variants
+                $b24ChatId = (string)$b24ChatId;
+                $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
+                if ($telegramChatId) break;
+
+                // Bitrix24 sometimes prefixes connector chat IDs
+                $telegramChatId = $storage->getTelegramIdByB24ConnectorId('telegram_bridge|' . $b24ChatId);
+                if ($telegramChatId) break;
+            }
+        }
     }
 
     if ($telegramChatId) {

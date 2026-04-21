@@ -120,17 +120,21 @@ class JsonStorage
         ];
     }
 
-    public function saveMapping(string $telegramChatId, string $b24ConnectorChatId, string $b24SessionId): void
+    public function saveMapping(string $telegramChatId, string $b24ConnectorChatId, string $b24SessionId, ?string $phoneNumber = null): void
     {
         $file = "{$this->leadsPath}/{$telegramChatId}.json";
         $data = $this->readJson($file);
         if (!$data) return;
 
-        $data['mapping'] = [
-            'b24_connector_chat_id' => $b24ConnectorChatId,
-            'b24_session_id' => $b24SessionId,
-            'last_message_date' => time()
-        ];
+        $mapping = $data['mapping'] ?? [];
+        $mapping['b24_connector_chat_id'] = $b24ConnectorChatId;
+        $mapping['b24_session_id'] = $b24SessionId;
+        $mapping['last_message_date'] = time();
+        if ($phoneNumber !== null) {
+            $mapping['phone_number'] = $phoneNumber;
+        }
+        
+        $data['mapping'] = $mapping;
         $this->writeJson($file, $data);
     }
 
@@ -147,6 +151,23 @@ class JsonStorage
         foreach ($files as $file) {
             $data = json_decode(file_get_contents($file), true);
             if (($data['mapping']['b24_connector_chat_id'] ?? '') == $b24ConnectorChatId) {
+                return (string)$data['telegram_chat_id'];
+            }
+        }
+        return null;
+    }
+
+    public function getTelegramIdByPhone(string $phoneNumber): ?string
+    {
+        if (empty($phoneNumber)) return null;
+        $files = glob("{$this->leadsPath}/*.json");
+        foreach ($files as $file) {
+            $data = json_decode(file_get_contents($file), true);
+            $storedPhone = $data['mapping']['phone_number'] ?? null;
+            // clean formatting
+            $cleanStored = preg_replace('/\D/', '', (string)$storedPhone);
+            $cleanInput = preg_replace('/\D/', '', $phoneNumber);
+            if ($cleanStored && $cleanStored === $cleanInput) {
                 return (string)$data['telegram_chat_id'];
             }
         }
