@@ -48,44 +48,29 @@ try {
         throw new Exception("No CRM entity (Lead/Contact) associated with this request.");
     }
 
-    // 2. Get all mappings and find Telegram chat via CRM
+    // 2. Find Telegram chat via B24 open line connector
     $telegramChatId = null;
 
-    // First try: look up by phone number directly in storage
-    if ($phoneNumber) {
-        $telegramChatId = $storage->getTelegramIdByPhone($phoneNumber);
-    }
-
-    // Second try: find via B24 open line chat ID
-    if (!$telegramChatId && $entityId) {
-        // Get ALL chats for this entity, not just one
+    if ($entityId) {
+        // Get chats for this entity - search by CONNECTOR_ID
         $chatRes = CRest::call('imopenlines.crm.chat.get', [
             'CRM_ENTITY_TYPE' => $entityType,
             'CRM_ENTITY'      => $entityId
         ]);
 
         if (!empty($chatRes['result'])) {
-            // Log to debug mismatch
+            // Log for debugging
             CRest::setLog(['lookup_chats' => $chatRes['result']], 'sms_debug');
             
             foreach ($chatRes['result'] as $chatObj) {
-                if (!isset($chatObj['CHAT_ID'])) continue;
+                if (!isset($chatObj['CHAT_ID']) || !isset($chatObj['CONNECTOR_ID'])) continue;
                 
-                $b24ChatId = (string)$chatObj['CHAT_ID'];
-                $connectorId = (string)($chatObj['CONNECTOR_ID'] ?? 'telegram_bridge');
-                
-                // Build lookup key with connector info for accurate mapping
-                $lookupKey = $connectorId . '|' . $b24ChatId;
-                $telegramChatId = $storage->getTelegramIdByB24ConnectorId($lookupKey);
-                if ($telegramChatId) break;
-                
-                // Try with just the chat ID as fallback
-                $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
-                if ($telegramChatId) break;
-                
-                // Try with explicit telegram_bridge prefix as second fallback
-                $telegramChatId = $storage->getTelegramIdByB24ConnectorId('telegram_bridge|' . $b24ChatId);
-                if ($telegramChatId) break;
+                // If connector is telegram_bridge, use the chat ID directly
+                if ((string)$chatObj['CONNECTOR_ID'] === 'telegram_bridge') {
+                    $telegramChatId = (string)$chatObj['CHAT_ID'];
+                    CRest::setLog(['found_telegram_chat' => $telegramChatId], 'sms_debug');
+                    break;
+                }
             }
         }
     }
