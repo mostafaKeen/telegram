@@ -65,11 +65,18 @@ try {
             foreach ($chatRes['result'] as $chatObj) {
                 if (!isset($chatObj['CHAT_ID']) || !isset($chatObj['CONNECTOR_ID'])) continue;
                 
-                // If connector is telegram_bridge, use the chat ID directly
+                // If connector is telegram_bridge, get the B24 chat ID
                 if ((string)$chatObj['CONNECTOR_ID'] === 'telegram_bridge') {
-                    $telegramChatId = (string)$chatObj['CHAT_ID'];
-                    CRest::setLog(['found_telegram_chat' => $telegramChatId], 'sms_debug');
-                    break;
+                    $b24ChatId = (string)$chatObj['CHAT_ID'];
+                    CRest::setLog(['found_b24_chat_id' => $b24ChatId], 'sms_debug');
+                    
+                    // Convert B24 chat ID to actual Telegram chat ID via storage
+                    $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
+                    CRest::setLog(['lookup_result' => $telegramChatId], 'sms_debug');
+                    
+                    if ($telegramChatId) {
+                        break;
+                    }
                 }
             }
         }
