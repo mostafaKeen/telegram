@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Respond 200 immediately so Telegram never marks this webhook as failing
 // and never retries, even if processing takes time.
 http_response_code(200);
-
+file_put_contents(__DIR__.'/__hit.txt', date('Y-m-d H:i:s') . PHP_EOL, FILE_APPEND);
 require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 require_once(__DIR__ . '/settings.php');
 require_once(__DIR__ . '/crest.php');
