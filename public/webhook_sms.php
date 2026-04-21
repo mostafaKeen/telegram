@@ -56,77 +56,48 @@ try {
         'phone_number' => $phoneNumber
     ], 'sms_webhook_flow');
 
-    // 2. Find Telegram chat via B24 open line connector
+    // 2. Get CRM entity to check IM field for telegram_bridge connection
     $telegramChatId = null;
-
-    if ($entityId) {
-        CRest::setLog(['step' => 'Calling imopenlines.crm.chat.get'], 'sms_webhook_flow');
+    
+    CRest::setLog(['step' => 'Fetching CRM entity data'], 'sms_webhook_flow');
+    $entityInfoRes = CRest::call('crm.' . strtolower($entityType) . '.get', ['id' => $entityId]);
+    
+    CRest::setLog([
+        'step' => 'CRM entity retrieved',
+        'entity_response' => $entityInfoRes
+    ], 'sms_webhook_flow');
+    
+    if (empty($entityInfoRes['result'])) {
+        throw new Exception("Failed to retrieve CRM entity #{$entityId}");
+    }
+    
+    $entityData = $entityInfoRes['result'];
+    $assignedById = $entityData['ASSIGNED_BY_ID'] ?? null;
+    $entityName = $entityData['TITLE'] ?? $entityData['NAME'] ?? "Entity #$entityId";
+    
+    // Check IM field for telegram_bridge connection
+    if (!empty($entityData['IM']) && is_array($entityData['IM'])) {
+        CRest::setLog(['im_field' => $entityData['IM']], 'sms_webhook_flow');
         
-        // Get chats for this entity - search by CONNECTOR_ID
-        $chatRes = CRest::call('imopenlines.crm.chat.get', [
-            'CRM_ENTITY_TYPE' => $entityType,
-            'CRM_ENTITY'      => $entityId
-        ]);
-
-        CRest::setLog([
-            'step' => 'imopenlines.crm.chat.get response',
-            'response' => $chatRes
-        ], 'sms_webhook_flow');
-
-        if (!empty($chatRes['result'])) {
-            // Log for debugging
-            CRest::setLog(['lookup_chats_count' => count($chatRes['result'])], 'sms_debug');
-            
-            foreach ($chatRes['result'] as $index => $chatObj) {
-                CRest::setLog([
-                    'chat_object_index' => $index,
-                    'chat_object' => $chatObj
-                ], 'sms_webhook_flow');
-                
-                if (!isset($chatObj['CHAT_ID']) || !isset($chatObj['CONNECTOR_ID'])) {
+        foreach ($entityData['IM'] as $imEntry) {
+            if ($imEntry['VALUE_TYPE'] === 'IMOL' && strpos($imEntry['VALUE'], 'telegram_bridge') !== false) {
+                // Parse imol format: imol|telegram_bridge|1|telegram_user_id|user_id
+                $parts = explode('|', $imEntry['VALUE']);
+                if (count($parts) >= 4) {
+                    $telegramChatId = $parts[3]; // Extract telegram_user_id
                     CRest::setLog([
-                        'skipped_chat' => $index,
-                        'reason' => 'missing CHAT_ID or CONNECTOR_ID'
+                        'step' => 'Found telegram_bridge in IM field',
+                        'im_value' => $imEntry['VALUE'],
+                        'extracted_telegram_id' => $telegramChatId
                     ], 'sms_webhook_flow');
-                    continue;
-                }
-                
-                $connectorId = (string)$chatObj['CONNECTOR_ID'];
-                CRest::setLog([
-                    'step' => 'Checking connector',
-                    'connector_id' => $connectorId,
-                    'is_telegram' => $connectorId === 'telegram_bridge'
-                ], 'sms_webhook_flow');
-                
-                // If connector is telegram_bridge, get the B24 chat ID
-                if ($connectorId === 'telegram_bridge') {
-                    $b24ChatId = (string)$chatObj['CHAT_ID'];
-                    CRest::setLog([
-                        'step' => 'Found telegram_bridge chat',
-                        'b24_chat_id' => $b24ChatId
-                    ], 'sms_webhook_flow');
-                    
-                    // Convert B24 chat ID to actual Telegram chat ID via storage
-                    CRest::setLog(['step' => 'Looking up Telegram ID in storage'], 'sms_webhook_flow');
-                    $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
-                    
-                    CRest::setLog([
-                        'step' => 'Storage lookup result',
-                        'telegram_chat_id' => $telegramChatId,
-                        'telegram_chat_id_type' => gettype($telegramChatId)
-                    ], 'sms_webhook_flow');
-                    
-                    if ($telegramChatId) {
-                        CRest::setLog(['step' => 'Telegram ID found, will send message'], 'sms_webhook_flow');
-                        break;
-                    } else {
-                        CRest::setLog(['step' => 'Telegram ID not found in storage'], 'sms_webhook_flow');
-                    }
+                    break;
                 }
             }
-        } else {
-            CRest::setLog(['step' => 'No chats found for entity'], 'sms_webhook_flow');
         }
+    }
+    
+    if (empty($telegramChatId)) {
+        CRest::setLog(['step' => 'No telegram_bridge found in IM field'], 'sms_webhook_flow');
     }
 
     if ($telegramChatId) {
@@ -177,17 +148,7 @@ try {
     } else {
         CRest::setLog(['step' => 'No Telegram chat ID found, will notify responsible person'], 'sms_webhook_flow');
         
-        // 6. NO CHAT FOUND: Notify responsible person
-        $entityInfoRes = CRest::call('crm.' . strtolower($entityType) . '.get', ['id' => $entityId]);
-        
-        CRest::setLog([
-            'step' => 'CRM entity info retrieved',
-            'response' => $entityInfoRes
-        ], 'sms_webhook_flow');
-        
-        $assignedById  = $entityInfoRes['result']['ASSIGNED_BY_ID'] ?? null;
-        $entityName    = $entityInfoRes['result']['TITLE'] ?? $entityInfoRes['result']['NAME'] ?? "Entity #$entityId";
-
+        // NO CHAT FOUND: Notify responsible person
         CRest::setLog([
             'step' => 'About to send notification',
             'assigned_by_id' => $assignedById,
