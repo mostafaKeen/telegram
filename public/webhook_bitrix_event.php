@@ -38,75 +38,119 @@ try {
         $telegramChatId = (string)($msg['chat']['id'] ?? '');
         $messageText    = $msg['message']['text'] ?? '';
         $imMsgId        = $msg['im'] ?? null;
+        $files          = $msg['message']['files'] ?? [];
 
         if (empty($telegramChatId)) {
             CRest::setLog(['skip' => 'missing chat_id', 'msg' => $msg], 'b24_event_skip');
             continue;
         }
 
-        // Clean Bitrix24 formatting like [b]User:[/b] and [br]
+        // Clean Bitrix24 formatting
         $cleanText = preg_replace('/\[b\].*?\[\/b\]\s*\[br\]\s*/i', '', $messageText);
         $cleanText = str_ireplace(['[br]', '[BR]'], "\n", $cleanText);
         $cleanText = strip_tags($cleanText);
         $cleanText = trim($cleanText);
 
-        if (empty($cleanText)) {
-            CRest::setLog(['skip' => 'empty text after cleaning', 'msg' => $msg], 'b24_event_skip');
+        if (empty($cleanText) && empty($files)) {
+            CRest::setLog(['skip' => 'empty message', 'msg' => $msg], 'b24_event_skip');
             continue;
         }
 
-        // 1. Send to Telegram FIRST — storage errors must not block delivery
         $botToken    = TELEGRAM_BOT_TOKEN;
-        $telegramUrl = "https://api.telegram.org/bot{$botToken}/sendMessage";
+        $allSentMsgIds = [];
 
-        $ch = curl_init($telegramUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'chat_id' => $telegramChatId,
-            'text'    => $cleanText,
-        ]));
-        $response  = curl_exec($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+        // 1. Handle Files
+        if (!empty($files)) {
+            foreach ($files as $index => $file) {
+                $fileUrl  = $file['url'] ?? '';
+                $fileName = $file['name'] ?? 'file';
+                
+                if (!$fileUrl) continue;
 
-        $tgResult = json_decode((string)$response, true);
-        $msgId    = $tgResult['result']['message_id'] ?? uniqid('b24_');
+                // Download file
+                $tempPath = __DIR__ . '/uploads/tmp_' . bin2hex(random_bytes(8)) . '_' . $fileName;
+                $fileContent = file_get_contents($fileUrl);
+                if ($fileContent === false) {
+                    CRest::setLog(['error' => 'Failed to download file', 'url' => $fileUrl], 'b24_event_error');
+                    continue;
+                }
+                file_put_contents($tempPath, $fileContent);
 
-        CRest::setLog([
-            'telegram_chat_id' => $telegramChatId,
-            'text'             => $cleanText,
-            'response'         => $tgResult,
-            'curl_error'       => $curlError,
-        ], 'b24_to_telegram');
+                // Determine Telegram method
+                $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                $isPhoto = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                $tgMethod = $isPhoto ? 'sendPhoto' : 'sendDocument';
+                $tgField  = $isPhoto ? 'photo' : 'document';
+                
+                $postFields = [
+                    'chat_id' => $telegramChatId,
+                    $tgField  => new CURLFile($tempPath)
+                ];
 
-        // 2. Save to local storage (non-blocking — errors don't affect delivery)
-        try {
-            $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text');
-        } catch (Throwable $storageErr) {
-            CRest::setLog([
-                'warning'  => 'Storage save failed (message was still delivered to Telegram)',
-                'error'    => $storageErr->getMessage(),
-                'chat_id'  => $telegramChatId,
-            ], 'b24_storage_warning');
+                // Add caption to the first file if text exists
+                if ($index === 0 && !empty($cleanText)) {
+                    $postFields['caption'] = $cleanText;
+                }
+
+                $ch = curl_init("https://api.telegram.org/bot{$botToken}/{$tgMethod}");
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+                $response = curl_exec($ch);
+                curl_close($ch);
+
+                $tgResult = json_decode((string)$response, true);
+                if ($tgResult && $tgResult['ok']) {
+                    $sentMsgId = (string)$tgResult['result']['message_id'];
+                    $allSentMsgIds[] = $sentMsgId;
+                    
+                    // Save to local storage
+                    $localName = bin2hex(random_bytes(8)) . '_' . $fileName;
+                    $localPath = __DIR__ . '/uploads/' . $localName;
+                    rename($tempPath, $localPath);
+                    $storage->saveMessage($telegramChatId, 'OUT', ($index === 0 ? $cleanText : ''), ($isPhoto ? 'photo' : 'document'), $localName, $sentMsgId);
+                } else {
+                    @unlink($tempPath);
+                    CRest::setLog(['error' => 'Telegram file upload failed', 'response' => $tgResult], 'b24_event_error');
+                }
+            }
+        } 
+        // 2. Handle Text Only
+        elseif (!empty($cleanText)) {
+            $ch = curl_init("https://api.telegram.org/bot{$botToken}/sendMessage");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+                'chat_id' => $telegramChatId,
+                'text'    => $cleanText,
+            ]));
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $tgResult = json_decode((string)$response, true);
+            if ($tgResult && $tgResult['ok']) {
+                $sentMsgId = (string)$tgResult['result']['message_id'];
+                $allSentMsgIds[] = $sentMsgId;
+                $storage->saveMessage($telegramChatId, 'OUT', $cleanText, 'text', null, $sentMsgId);
+            }
         }
 
         // 3. Push delivery status to Bitrix24 (stops the "loading" spinner)
-        if ($lineId && $imMsgId) {
+        if ($lineId && $imMsgId && !empty($allSentMsgIds)) {
             $deliveryStatus = CRest::call('imconnector.send.status.delivery', [
                 'CONNECTOR' => 'telegram_bridge',
                 'LINE'      => $lineId,
                 'MESSAGES'  => [
                     [
                         'im'      => $imMsgId,
-                        'message' => ['id' => [$msgId]],
+                        'message' => ['id' => $allSentMsgIds],
                         'chat'    => ['id' => $telegramChatId]
                     ]
                 ]
             ]);
             CRest::setLog([
                 'delivery_status' => $deliveryStatus,
-                'msg_id'          => $msgId,
+                'msg_ids'         => $allSentMsgIds,
             ], 'b24_delivery_report');
         }
     }
