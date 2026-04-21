@@ -84,11 +84,15 @@ try {
 
             // 3. Sync to Bitrix24 (to keep Open Line updated)
             $settingsFile = __DIR__ . '/settings.json';
-            $settings = [];
+            $settingsArr = [];
             if (file_exists($settingsFile)) {
-                $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+                $settingsArr = json_decode(file_get_contents($settingsFile), true) ?: [];
             }
-            $lineId = $settings['open_line_id'] ?? '1';
+            $lineId = $settingsArr['open_line_id'] ?? '1';
+
+            // Get agent info from request
+            $agentName = $_POST['agent_name'] ?? '';
+            $agentId   = $_POST['agent_id'] ?? '';
 
             // Get chat info for proper user identification in B24
             $chatInfo = $storage->getChatInfo($chatId);
@@ -100,6 +104,11 @@ try {
                 if ($mediaType === 'voice')        { $b24Text = 'Voice message'; }
                 elseif ($mediaType === 'document') { $b24Text = 'Document'; }
                 else                               { $b24Text = 'Attachment'; }
+            }
+
+            // Prefix with agent name if available (Bitrix24 supports BBCode [b])
+            if ($agentName) {
+                $b24Text = "[b]{$agentName} replied via dashboard:[/b] " . $b24Text;
             }
 
             $b24Msg = [
@@ -129,10 +138,29 @@ try {
                 ]],
             ]);
 
+            // Attempt to assign/answer the chat in Bitrix24 if agent_id is provided
+            $assignmentResult = null;
+            if ($agentId) {
+                $mapping = $storage->getMappingByTelegramId($chatId);
+                $b24ChatId = $mapping['b24_connector_chat_id'] ?? null;
+                
+                if ($b24ChatId) {
+                    // Try to answer/take the session (requires agent token or specific permissions)
+                    // We use imopenlines.operator.answer but it often acts on current auth user.
+                    // For explicit assignment, imopenlines.operator.transfer is better.
+                    $assignmentResult = CRest::call('imopenlines.operator.transfer', [
+                        'CHAT_ID'     => $b24ChatId,
+                        'TRANSFER_ID' => $agentId,
+                    ]);
+                }
+            }
+
             CRest::setLog([
-                'chat_id'      => $chatId,
-                'line_id'      => $lineId,
-                'b24_response' => $b24Result,
+                'chat_id'           => $chatId,
+                'line_id'           => $lineId,
+                'agent_id'          => $agentId,
+                'b24_response'      => $b24Result,
+                'assignment_result' => $assignmentResult,
             ], 'api_to_b24_sync');
 
             echo json_encode(['success' => true]);

@@ -102,11 +102,19 @@ $v = time();
         let lastSidebarMessageId = 0;
         let mediaRecorder = null;
         let audioChunks = [];
+        let currentB24User = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof BX24 !== 'undefined') {
                 BX24.init(function(){
                     console.log('Bitrix24 SDK Initialized');
+                    // Fetch current user info
+                    BX24.callMethod('user.current', {}, function(res) {
+                        if (res.data()) {
+                            currentB24User = res.data();
+                            console.log('Current B24 User:', currentB24User.NAME + ' ' + (currentB24User.LAST_NAME || ''));
+                        }
+                    });
                 });
             }
             loadChats();
@@ -308,6 +316,10 @@ $v = time();
             const formData = new FormData();
             formData.append('chat_id', currentChatId);
             formData.append('text', text);
+            if (currentB24User) {
+                formData.append('agent_name', currentB24User.NAME + ' ' + (currentB24User.LAST_NAME || ''));
+                formData.append('agent_id', currentB24User.ID);
+            }
 
             // Optimistic UI
             appendMessage({
@@ -358,6 +370,10 @@ $v = time();
             formData.append('chat_id', currentChatId);
             formData.append('file', blob, 'voice.ogg');
             formData.append('is_voice', '1');
+            if (currentB24User) {
+                formData.append('agent_name', currentB24User.NAME + ' ' + (currentB24User.LAST_NAME || ''));
+                formData.append('agent_id', currentB24User.ID);
+            }
             await fetch('api.php?action=send_message', { method: 'POST', body: formData });
         }
 
@@ -365,6 +381,10 @@ $v = time();
             const formData = new FormData();
             formData.append('chat_id', currentChatId);
             formData.append('file', file);
+            if (currentB24User) {
+                formData.append('agent_name', currentB24User.NAME + ' ' + (currentB24User.LAST_NAME || ''));
+                formData.append('agent_id', currentB24User.ID);
+            }
             await fetch('api.php?action=send_message', { method: 'POST', body: formData });
             document.getElementById('fileInput').value = '';
         }
