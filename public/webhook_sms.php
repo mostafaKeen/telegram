@@ -72,12 +72,18 @@ try {
                 if (!isset($chatObj['CHAT_ID'])) continue;
                 
                 $b24ChatId = (string)$chatObj['CHAT_ID'];
+                $connectorId = (string)($chatObj['CONNECTOR_ID'] ?? 'telegram_bridge');
                 
-                // Try both the raw ID and prefixed variants
+                // Build lookup key with connector info for accurate mapping
+                $lookupKey = $connectorId . '|' . $b24ChatId;
+                $telegramChatId = $storage->getTelegramIdByB24ConnectorId($lookupKey);
+                if ($telegramChatId) break;
+                
+                // Try with just the chat ID as fallback
                 $telegramChatId = $storage->getTelegramIdByB24ConnectorId($b24ChatId);
                 if ($telegramChatId) break;
-
-                // Bitrix24 sometimes prefixes connector chat IDs
+                
+                // Try with explicit telegram_bridge prefix as second fallback
                 $telegramChatId = $storage->getTelegramIdByB24ConnectorId('telegram_bridge|' . $b24ChatId);
                 if ($telegramChatId) break;
             }
