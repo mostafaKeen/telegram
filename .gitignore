@@ -1,6 +1,7 @@
 # Sensitive environment variables
 .env
-
+/public/settings.json
+/public/settings.php
 # Dependencies
 /vendor/
 /composer.lock
