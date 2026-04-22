@@ -7,9 +7,9 @@ require_once(__DIR__ . '/../src/TelegramBridge/bootstrap.php');
 require_once(__DIR__ . '/settings.php');
 require_once(__DIR__ . '/crest.php');
 
-// Allow embedding in Bitrix24
+// Allow embedding in Bitrix24 (including regional domains like .ae)
 header('Content-Type: text/html; charset=utf-8');
-header("Content-Security-Policy: frame-ancestors 'self' *.bitrix24.com *.bitrix24.info");
+header("Content-Security-Policy: frame-ancestors 'self' *.bitrix24.com *.bitrix24.info *.bitrix24.ae *.bitrix24.eu *.bitrix24.de *.bitrix24.ua *.bitrix24.ru *.bitrix24.kz *.bitrix24.by *.bitrix24.vn *.bitrix24.jp *.bitrix24.it *.bitrix24.fr *.bitrix24.es *.bitrix24.pl *.bitrix24.com.br *.bitrix24.cn *.bitrix24.mx");
 header('P3P: CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"');
 
 $v = time();
